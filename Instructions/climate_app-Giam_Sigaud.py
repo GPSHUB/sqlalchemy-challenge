@@ -1,4 +1,5 @@
 # Import Dependencies
+# ***Imported datetime due to having to manipulate dates for Routes Temp <start> and Temp <start>/<end>
 import datetime as dt
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from sqlalchemy import create_engine, func
 
 from flask import Flask, jsonify
 
+# ***Overall Flask format: From 10-Advanced-Data-Storage-and-Retrieval/3/Activities/10-Ins_Flask_with_ORM/app.py
 #################################################
 # Database Setup
 #################################################
@@ -37,6 +39,7 @@ app = Flask(__name__)
 # Flask Routes
 #################################################
 
+# ***On lines 51 & 52 I had to figure out that entering the words <start> or <end> didn't work. Instead, I am asking the recipient to input the date in the format I describe then the route does its job. This was a learning.
 @app.route("/")
 def welcome():
     return (
@@ -51,6 +54,8 @@ def welcome():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
+
+#***timedelta: From 10-Advanced-Data-Storage-and-Retrieval/3/Activities/02-Ins_Dates
     # Return the precipitation data for the last year
     # Calculate the date 1 year ago from last date in database
     prev_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
@@ -58,6 +63,7 @@ def precipitation():
     # Query for the date and precipitation for the last year
     precipitation = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= prev_year).all()
 
+    # *** Here I was fuzzy on list comprehension so I stack-overflowed it and found the explanation below. I saved it for future reference.
     # Dictionary with date as the key and prcp as the value
     # {key: value for (key, value) in iterable} - from stack overflow - also in Emoji exercise.
     precip = {date: prcp for date, prcp in precipitation}
@@ -66,6 +72,9 @@ def precipitation():
 @app.route("/api/v1.0/stations")
 def stations():
     results = session.query(Station.station).all()
+
+# ***Ravel: From 10-Advanced-Data-Storage-and-Retrieval/3/Activities/03-Stu_Dates/Omar_Dates.ipynb
+# ***I was fuzzy on Ravel so I sourced it to make sure I could recall this learning in the future. Turns out it is a pretty simple concept.
     # Ravel returns a contiguous flattened array - stack overflow. 
     # Ravel returns the list of stations found in each row in one line.
     stations = list(np.ravel(results))
@@ -103,6 +112,8 @@ def single_date(start):
    
 @app.route("/api/v1.0/temp/<start>/<end>")
 def start_end(start=None, end=None):
+    
+    # ***sel = (different queries) & query(*sel): From 10-Advanced-Data-Storage-and-Retrieval/3/Activities/01-Ins-Joins/Ins_joins.ipynb
     # Select statement
     sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
     if not end:
